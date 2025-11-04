@@ -6,7 +6,7 @@ import { LayoutService } from '../../../core/services/layout';
   selector: 'app-dashboard',
   standalone: false,
   templateUrl: './dashboard.html',
-  styleUrl: './dashboard.scss'
+  styleUrls: ['./dashboard.scss']
 })
 export class DashboardComponent implements OnInit {
   summaryData = [
@@ -74,6 +74,37 @@ export class DashboardComponent implements OnInit {
     "¿Qué evento planearemos hoy?",
     "¡Tu último evento fue un éxito! 🎉"
   ];
-  return messages[Math.floor(Math.random() * messages.length)];
-}
+  const idx = this.secureRandomIndex(messages.length);
+  return messages[idx];
+  }
+
+  /**
+   * Devuelve un índice aleatorio en [0, max) usando crypto.getRandomValues cuando esté disponible.
+   * Emplea muestreo por rechazo para evitar sesgo por el módulo.
+   * Si no existe una API criptográfica, cae en Math.random() como respaldo.
+   */
+  private secureRandomIndex(max: number): number {
+    if (max <= 0) return 0;
+    try {
+  const globalObj: any = (typeof window !== 'undefined' && window) || (typeof self !== 'undefined' && self) || undefined;
+      const cryptoObj = globalObj && (globalObj.crypto || globalObj.msCrypto);
+      if (cryptoObj && typeof cryptoObj.getRandomValues === 'function') {
+        const uint32 = new Uint32Array(1);
+        const maxUint = 0xffffffff; // 2^32 - 1
+        const range = max;
+        // límite para evitar sesgo: floor((maxUint+1)/range)*range
+        const limit = Math.floor((maxUint + 1) / range) * range;
+        let r = 0;
+        do {
+          cryptoObj.getRandomValues(uint32);
+          r = uint32[0];
+        } while (r >= limit);
+        return r % range;
+      }
+    } catch (e) {
+      // Si algo falla con crypto, caeremos en el fallback de abajo
+    }
+    // Fallback: aunque Math.random no es criptográficamente seguro, lo usamos sólo si no hay alternativa
+    return Math.floor(Math.random() * max);
+  }
 }

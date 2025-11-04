@@ -1,3 +1,4 @@
+// C:\Users\Juana\OneDrive\Documentos\logi-tofos\backend\controllers\personnelTypeControllers.js
 const PersonnelType = require('../models/PersonnelType');
 const Contract = require('../models/Contract');
 
@@ -160,7 +161,7 @@ exports.updatePersonnelType = async (req, res) => {
     if (rate) updateData.rate = rate;
     
     // Validación especial para coordinadores (no pueden cambiar estado)
-    if (typeof isActive !== 'undefined') {
+    if (isActive !== undefined) {
       if (req.userRole === 'coordinador') {
         return res.status(403).json({
           success: false,
@@ -228,10 +229,19 @@ exports.deletePersonnelType = async (req, res) => {
       });
     }
 
-    // Verificar si el tipo de personal está asignado a algún contrato
+    // Validar formato del ID antes de hacer la consulta
+    const typeId = req.params.id;
+    if (!typeId || !/^[0-9a-fA-F]{24}$/.test(typeId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID de tipo de personal inválido'
+      });
+    }
+
+    // Verificar si el tipo de personal está asignado a algún contrato usando ID validado
     const contractWithPersonnelType = await Contract.findOne({
-      'personnel.type': req.params.id
-    });
+      'personnel.type': typeId
+    }).select('_id');  // Solo necesitamos saber si existe
     
     // Prevenir eliminación si está en uso
     if (contractWithPersonnelType) {

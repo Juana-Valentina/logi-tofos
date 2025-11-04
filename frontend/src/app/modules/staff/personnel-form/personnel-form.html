@@ -32,9 +32,9 @@
       <div class="form-grid">
         <!-- Nombre -->
         <div class="form-group">
-          <label><i class="fas fa-user"></i> Nombre*</label>
+          <label for="firstNameInput"><i class="fas fa-user"></i> Nombre*</label>
           <div class="input-field">
-            <input type="text" formControlName="firstName" placeholder="Ingrese el nombre">
+            <input id="firstNameInput" type="text" formControlName="firstName" placeholder="Ingrese el nombre">
             @if (personnelForm.get('firstName')?.invalid && personnelForm.get('firstName')?.touched) {
               <div class="error-message">
                 @if (personnelForm.get('firstName')?.errors?.['required']) {
@@ -50,9 +50,9 @@
 
         <!-- Apellido -->
         <div class="form-group">
-          <label><i class="fas fa-user"></i> Apellido*</label>
+          <label for="lastNameInput"><i class="fas fa-user"></i> Apellido*</label>
           <div class="input-field">
-            <input type="text" formControlName="lastName" placeholder="Ingrese el apellido">
+            <input id="lastNameInput" type="text" formControlName="lastName" placeholder="Ingrese el apellido">
             @if (personnelForm.get('lastName')?.invalid && personnelForm.get('lastName')?.touched) {
               <div class="error-message">
                 @if (personnelForm.get('lastName')?.errors?.['required']) {
@@ -68,9 +68,9 @@
 
         <!-- Email -->
         <div class="form-group">
-          <label><i class="fas fa-envelope"></i> Email*</label>
+          <label for="emailInput"><i class="fas fa-envelope"></i> Email*</label>
           <div class="input-field">
-            <input type="email" formControlName="email" placeholder="Ingrese el email">
+            <input id="emailInput" type="email" formControlName="email" placeholder="Ingrese el email">
             @if (personnelForm.get('email')?.invalid && personnelForm.get('email')?.touched) {
               <div class="error-message">
                 @if (personnelForm.get('email')?.errors?.['required']) {
@@ -86,9 +86,9 @@
 
         <!-- Teléfono -->
         <div class="form-group">
-          <label><i class="fas fa-phone"></i> Teléfono</label>
+          <label for="phoneInput"><i class="fas fa-phone"></i> Teléfono</label>
           <div class="input-field">
-            <input type="tel" formControlName="phone" placeholder="Ingrese el teléfono">
+            <input id="phoneInput" type="tel" formControlName="phone" placeholder="Ingrese el teléfono">
             @if (personnelForm.get('phone')?.invalid && personnelForm.get('phone')?.touched) {
               <div class="error-message">
                 <span><i class="fas fa-exclamation-circle"></i> Formato inválido (10-15 dígitos)</span>
@@ -99,7 +99,7 @@
 
         <!-- Categoría -->
         <div class="form-group">
-          <label><i class="fas fa-user-tag"></i> Categoría*</label>
+          <label for="personnelTypeSelect"><i class="fas fa-user-tag"></i> Categoría*</label>
           
           @if (personnel) {
             <div class="current-type">
@@ -109,7 +109,7 @@
           }
           
           <div class="input-field">
-            <select formControlName="personnelType" (change)="onTypeChange($event)">
+            <select id="personnelTypeSelect" formControlName="personnelType" (change)="onTypeChange($event)">
               <option value="">Seleccione una categoría</option>
               @for (type of personnelTypes; track type._id) {
                 <option [value]="type._id">{{ type.name }}</option>
@@ -126,9 +126,9 @@
 
         <!-- Estado -->
         <div class="form-group">
-          <label><i class="fas fa-power-off"></i> Estado*</label>
+          <label for="statusSelect"><i class="fas fa-power-off"></i> Estado*</label>
           <div class="input-field">
-            <select formControlName="status">
+            <select id="statusSelect" formControlName="status">
               @for (status of statusOptions; track status.value) {
                 <option [value]="status.value">{{ status.label }}</option>
               }
@@ -141,7 +141,7 @@
           <label><i class="fas fa-tools"></i> Habilidades</label>
           <div class="skills-input-container">
             <div class="input-field">
-              <input type="text" [(ngModel)]="newSkill" 
+    <input id="newSkillInput" type="text" [(ngModel)]="newSkill" 
                      [ngModelOptions]="{standalone: true}" 
                      placeholder="Añadir nueva habilidad" 
                      (keyup.enter)="addSkill()">

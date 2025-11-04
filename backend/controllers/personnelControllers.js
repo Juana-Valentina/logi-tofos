@@ -1,3 +1,4 @@
+// C:\Users\Juana\OneDrive\Documentos\logi-tofos\backend\controllers\personnelControllers.js
 const Personnel = require('../models/Personnel');
 const PersonnelType = require('../models/PersonnelType');
 const Contract = require('../models/Contract');
@@ -5,21 +6,68 @@ const Contract = require('../models/Contract');
 /**
  * Controlador: Obtener todo el personal
  * Acceso: Todos los roles (pero líderes solo ven personal activo)
+ * Descripción: Recupera la lista completa de personal, con filtros según el rol del usuario
  */
 exports.getAllPersonnel = async (req, res) => {
   try {
     // Filtro especial para líderes (solo personal disponible)
     const filter = req.userRole === 'lider' ? { status: 'disponible' } : {};
     
-    // Buscar todo el personal con su tipo de personal asociado
-    const personnel = await Personnel.find(filter)
-      .populate('personnelType', 'name rate') // Solo nombre y tarifa del tipo
-      .sort({ lastName: 1, firstName: 1 }); // Ordenar por apellido y nombre
-      
-    // Respuesta exitosa con los datos encontrados
+    // Parámetros de consulta (paginación, búsqueda y orden)
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+    const search = (req.query.search || '').toString().trim();
+    const personnelTypeFilter = req.query.personnelType;
+    const statusFilter = req.query.status;
+    const sortBy = (req.query.sortBy || 'lastName').toString();
+    const order = req.query.order === 'desc' ? -1 : 1;
+
+    // Construir filtro adicional seguro a partir de query params
+    if (personnelTypeFilter && /^[0-9a-fA-F]{24}$/.test(personnelTypeFilter)) {
+      filter.personnelType = personnelTypeFilter;
+    }
+    if (statusFilter && ['disponible', 'asignado', 'vacaciones', 'inactivo'].includes(statusFilter)) {
+      filter.status = statusFilter;
+    }
+
+    // Búsqueda segura: escapar entrada del usuario antes de crear RegExp
+    const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    if (search) {
+      const safe = escapeRegex(search);
+      const regex = new RegExp(safe, 'i');
+      filter.$or = [
+        { firstName: regex },
+        { lastName: regex },
+        { email: regex }
+      ];
+    }
+
+    // Construir objeto de ordenamiento validando campos permitidos
+    const allowedSortFields = ['lastName', 'firstName', 'email', 'createdAt'];
+    const sortField = allowedSortFields.includes(sortBy) ? sortBy : 'lastName';
+    const sortObj = { [sortField]: order };
+
+    // Ejecutar consulta con paginación y conteo total
+    const skip = (page - 1) * limit;
+    const [total, personnel] = await Promise.all([
+      Personnel.countDocuments(filter),
+      Personnel.find(filter)
+        .populate('personnelType', 'name rate') // Solo nombre y tarifa del tipo
+        .sort(sortObj)
+        .skip(skip)
+        .limit(limit)
+    ]);
+
+    // Respuesta exitosa con paginación
     res.status(200).json({
       success: true,
-      data: personnel
+      data: personnel,
+      meta: {
+        total,
+        page,
+        limit,
+        pages: Math.max(1, Math.ceil(total / limit))
+      }
     });
   } catch (error) {
     // Manejo de errores del servidor
@@ -145,65 +193,63 @@ exports.createPersonnel = async (req, res) => {
 };
 
 /**
+ * Validar permisos de actualización según el rol
+ */
+const validateUpdatePermissions = (userRole, status) => {
+  if (userRole !== 'admin' && userRole !== 'coordinador') {
+    throw { status: 403, message: 'Solo administradores y coordinadores pueden actualizar personal' };
+  }
+  if (status && userRole === 'coordinador') {
+    throw { status: 403, message: 'Coordinadores no pueden cambiar el estado del personal' };
+  }
+};
+
+/**
+ * Preparar datos de actualización validados
+ */
+const prepareUpdateData = async (requestData) => {
+  const { firstName, lastName, email, phone, personnelType, skills, status } = requestData;
+  const updateData = {};
+
+  // Campos básicos
+  if (firstName) updateData.firstName = firstName;
+  if (lastName) updateData.lastName = lastName;
+  if (email) updateData.email = email;
+  if (phone) updateData.phone = phone;
+  if (skills) updateData.skills = skills;
+  if (status) updateData.status = status;
+
+  // Validar tipo de personal
+  if (personnelType) {
+    const personnelTypeExists = await PersonnelType.findById(personnelType);
+    if (!personnelTypeExists) {
+      throw { status: 404, message: 'El tipo de personal especificado no existe' };
+    }
+    updateData.personnelType = personnelType;
+  }
+
+  return updateData;
+};
+
+/**
  * Controlador: Actualizar personal
  * Acceso: Solo administradores y coordinadores
  * Restricciones: Coordinadores no pueden cambiar estado
  */
 exports.updatePersonnel = async (req, res) => {
   try {
-    // Validar rol del usuario
-    if (req.userRole !== 'admin' && req.userRole !== 'coordinador') {
-      return res.status(403).json({
-        success: false,
-        message: 'Solo administradores y coordinadores pueden actualizar personal'
-      });
-    }
+    validateUpdatePermissions(req.userRole, req.body.status);
+    const updateData = await prepareUpdateData(req.body);
 
-    // Extraer datos del cuerpo de la solicitud
-    const { firstName, lastName, email, phone, personnelType, skills, status } = req.body;
-    const updateData = {}; // Objeto para almacenar los campos a actualizar
-
-    // Preparar datos a actualizar
-    if (firstName) updateData.firstName = firstName;
-    if (lastName) updateData.lastName = lastName;
-    if (email) updateData.email = email;
-    if (phone) updateData.phone = phone;
-    if (skills) updateData.skills = skills;
-    
-    // Validación especial para coordinadores (no pueden cambiar estado)
-    if (status) {
-      if (req.userRole === 'coordinador') {
-        return res.status(403).json({
-          success: false,
-          message: 'Coordinadores no pueden cambiar el estado del personal'
-        });
-      }
-      updateData.status = status;
-    }
-
-    // Validar tipo de personal si se quiere cambiar
-    if (personnelType) {
-      const personnelTypeExists = await PersonnelType.findById(personnelType);
-      if (!personnelTypeExists) {
-        return res.status(404).json({
-          success: false,
-          message: 'El tipo de personal especificado no existe'
-        });
-      }
-      updateData.personnelType = personnelType;
-    }
-
-    // Buscar y actualizar el personal
     const updatedPersonnel = await Personnel.findByIdAndUpdate(
       req.params.id,
       updateData,
       { 
-        new: true, // Devuelve el documento actualizado
-        runValidators: true // Ejecuta validaciones del esquema
+        new: true,
+        runValidators: true
       }
-    ).populate('personnelType', 'name'); // Poblar solo el nombre del tipo
+    ).populate('personnelType', 'name');
 
-    // Si no se encuentra el personal
     if (!updatedPersonnel) {
       return res.status(404).json({
         success: false,
@@ -211,14 +257,18 @@ exports.updatePersonnel = async (req, res) => {
       });
     }
 
-    // Respuesta exitosa con los datos actualizados
     res.status(200).json({
       success: true,
       message: 'Personal actualizado exitosamente',
       data: updatedPersonnel
     });
   } catch (error) {
-    // Manejo especial para errores de duplicado (email único)
+    if (error.status) {
+      return res.status(error.status).json({
+        success: false,
+        message: error.message
+      });
+    }
     if (error.code === 11000) {
       return res.status(400).json({
         success: false,
@@ -226,7 +276,6 @@ exports.updatePersonnel = async (req, res) => {
         field: 'email'
       });
     }
-    // Manejo de otros errores
     res.status(500).json({
       success: false,
       message: 'Error al actualizar personal',
@@ -250,10 +299,19 @@ exports.deletePersonnel = async (req, res) => {
       });
     }
 
-    // Verificar si el personal está asignado a algún contrato
+    // Validar formato del ID antes de hacer la consulta
+    const personnelId = req.params.id;
+    if (!personnelId || !/^[0-9a-fA-F]{24}$/.test(personnelId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID de personal inválido'
+      });
+    }
+
+    // Verificar si el personal está asignado a algún contrato usando ID validado
     const contractWithPersonnel = await Contract.findOne({ 
-      'personnel.person': req.params.id 
-    });
+      'personnel.person': personnelId
+    }).select('_id');  // Solo necesitamos saber si existe
     
     // Prevenir eliminación si está en uso
     if (contractWithPersonnel) {

@@ -1,3 +1,4 @@
+// C:\Users\Juana\OneDrive\Documentos\logi-tofos\backend\src\controllers\core\StaffController.js
 const Staff = require('../../models/core/Staff');
 const StaffType = require('../../models/types/StaffType');
 
@@ -51,8 +52,8 @@ module.exports = {
     async create(req, res) {
         console.log('Ejecutando create - Crear nuevo registro de personal');
         try {
-            const { role } = req.user;
-            const { userId, staffTypeId } = req.body;
+            // No necesitamos extraer role aquí (no se usa). Solo campos esperados.
+            const { userId, staffTypeId, leaderId, asistencia, status } = req.body;
             console.log(`Datos recibidos - userId: ${userId}, staffTypeId: ${staffTypeId}`);
 
             // Validación básica de campos requeridos
@@ -63,9 +64,21 @@ module.exports = {
                     message: 'Usuario y tipo de personal son requeridos' 
                 });
             }
+            // Validar formato de IDs (evitar inyección mediante parámetros maliciosos)
+            const idRegex = /^[0-9a-fA-F]{24}$/;
+            if (!idRegex.test(userId) || !idRegex.test(staffTypeId)) {
+                console.warn('Formato de ID inválido en create');
+                return res.status(400).json({ success: false, message: 'ID inválido' });
+            }
 
-            console.log('Creando nuevo registro...');
-            const newStaff = await Staff.create(req.body);
+            // Construir objeto seguro solo con campos permitidos (whitelist)
+            const safePayload = { userId, staffTypeId };
+            if (leaderId) safePayload.leaderId = leaderId;
+            if (typeof asistencia !== 'undefined') safePayload.asistencia = asistencia;
+            if (typeof status !== 'undefined') safePayload.status = status;
+
+            console.log('Creando nuevo registro (payload saneado)...');
+            const newStaff = await Staff.create(safePayload);
             console.log(`Nuevo personal creado con ID: ${newStaff._id}`);
 
             res.status(201).json({ 
@@ -99,14 +112,28 @@ module.exports = {
     async update(req, res) {
         console.log(`Ejecutando update - Actualizando personal ID: ${req.params.id}`);
         try {
-            const { role } = req.user;
-            const updates = req.body;
-            console.log(`Actualizaciones solicitadas:`, updates);
+            // No usamos role en este controlador; saneamos updates antes de aplicar
+            const allowed = ['userId', 'staffTypeId', 'leaderId', 'asistencia', 'status'];
+            const updates = {};
+            for (const key of allowed) {
+                if (Object.prototype.hasOwnProperty.call(req.body, key)) {
+                    updates[key] = req.body[key];
+                }
+            }
 
-            console.log('Realizando actualización...');
+            // Validar IDs si se están actualizando
+            const idRegex = /^[0-9a-fA-F]{24}$/;
+            if (updates.userId && !idRegex.test(updates.userId)) {
+                return res.status(400).json({ success: false, message: 'userId inválido' });
+            }
+            if (updates.staffTypeId && !idRegex.test(updates.staffTypeId)) {
+                return res.status(400).json({ success: false, message: 'staffTypeId inválido' });
+            }
+
+            console.log('Realizando actualización (payload saneado)...');
             const updatedStaff = await Staff.findByIdAndUpdate(
-                req.params.id, 
-                updates, 
+                req.params.id,
+                updates,
                 { new: true, runValidators: true }
             );
 

@@ -1,3 +1,4 @@
+// C:\Users\Juana\OneDrive\Documentos\logi-tofos\backend\src\controllers\types\StaffTypeController.js
 const StaffType = require('../../models/types/StaffType');
 const User = require('../../models/main/User');
 
@@ -62,21 +63,38 @@ module.exports = {
             const { name, description, requiredCertifications } = req.body;
             console.log('Datos recibidos:', { name, description, requiredCertifications });
 
-            // Validación básica
-            if (!name) {
-                console.warn('Intento de creación sin nombre');
+            // Validación básica y saneamiento
+            const safeName = typeof name === 'string' ? name.trim().slice(0, 100) : '';
+            if (!safeName) {
+                console.warn('Intento de creación sin nombre o nombre inválido');
                 return res.status(400).json({
                     success: false,
-                    message: 'El nombre es obligatorio'
+                    message: 'El nombre es obligatorio y debe ser una cadena válida (máx 100 caracteres)'
                 });
             }
 
-            const newStaffType = await StaffType.create({
-                name,
-                description,
-                requiredCertifications,
+            const safeDescription = typeof description === 'string' ? description.trim().slice(0, 1000) : undefined;
+
+            // requiredCertifications: asegurarnos de que sea un array de strings saneados
+            let safeCerts = [];
+            if (Array.isArray(requiredCertifications)) {
+                safeCerts = requiredCertifications
+                    .filter(rc => rc != null)
+                    .map(rc => (typeof rc === 'string' ? rc.trim().slice(0, 200) : ''))
+                    .filter(s => s.length > 0);
+                // Limitar número de certificaciones razonable
+                if (safeCerts.length > 20) safeCerts = safeCerts.slice(0, 20);
+            }
+
+            // Construir payload seguro (whitelist)
+            const payload = {
+                name: safeName,
                 createdBy: req.user._id
-            });
+            };
+            if (typeof safeDescription !== 'undefined') payload.description = safeDescription;
+            if (safeCerts.length > 0) payload.requiredCertifications = safeCerts;
+
+            const newStaffType = await StaffType.create(payload);
 
             console.log(`Nuevo tipo creado con ID: ${newStaffType._id}`);
             res.status(201).json({
