@@ -32,18 +32,17 @@ const checkRole = (allowedRoles) => {
         `- Roles requeridos: ${rolesArray.join(', ')}`
       );
       
-      // 5. Respuesta detallada pero segura
+      // 5. Respuesta de error
       return res.status(403).json({
         success: false,
-        message: 'No tienes los permisos necesarios para esta acción',
-        errorCode: 'INSUFFICIENT_PERMISSIONS',
-        requiredRoles: rolesArray,
+        message: 'Acceso denegado: El rol de usuario no tiene permiso para esta acción',
+        errorCode: 'FORBIDDEN_ROLE',
         currentRole: req.userRole,
-        timestamp: new Date().toISOString()
+        requiredRoles: rolesArray
       });
     }
 
-    // 6. Continuar si todo está correcto
+    // 6. La ejecución continúa
     next();
   };
 };

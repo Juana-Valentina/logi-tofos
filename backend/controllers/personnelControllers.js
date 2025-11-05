@@ -164,26 +164,16 @@ exports.updatePersonnel = async (req, res) => {
     // Extraer datos del cuerpo de la solicitud
     const { firstName, lastName, email, phone, personnelType, skills, status } = req.body;
     const updateData = {}; // Objeto para almacenar los campos a actualizar
-
-    // Preparar datos a actualizar
-    if (firstName) updateData.firstName = firstName;
-    if (lastName) updateData.lastName = lastName;
-    if (email) updateData.email = email;
-    if (phone) updateData.phone = phone;
-    if (skills) updateData.skills = skills;
     
-    // Validación especial para coordinadores (no pueden cambiar estado)
-    if (status) {
-      if (req.userRole === 'coordinador') {
-        return res.status(403).json({
-          success: false,
-          message: 'Coordinadores no pueden cambiar el estado del personal'
-        });
-      }
-      updateData.status = status;
+    // --- Guard Clause: Coordinadores no pueden cambiar estado (status) ---
+    if (status && req.userRole === 'coordinador') {
+      return res.status(403).json({
+        success: false,
+        message: 'Coordinadores no pueden cambiar el estado del personal'
+      });
     }
 
-    // Validar tipo de personal si se quiere cambiar
+    // --- Guard Clause: Validar tipo de personal si se quiere cambiar ---
     if (personnelType) {
       // ✅ CORRECCIÓN: Forzamos el ID 'personnelType' a string
       const personnelTypeExists = await PersonnelType.findById(String(personnelType));
@@ -193,8 +183,16 @@ exports.updatePersonnel = async (req, res) => {
           message: 'El tipo de personal especificado no existe'
         });
       }
-      updateData.personnelType = personnelType;
     }
+    
+    // --- Preparar datos a actualizar (Lógica aplanada) ---
+    if (firstName) updateData.firstName = firstName;
+    if (lastName) updateData.lastName = lastName;
+    if (email) updateData.email = email;
+    if (phone) updateData.phone = phone;
+    if (skills) updateData.skills = skills;
+    if (status) updateData.status = status; // Si pasó el Guard Clause, se puede actualizar
+    if (personnelType) updateData.personnelType = personnelType; // Si pasó el Guard Clause, se puede actualizar
 
     // Buscar y actualizar el personal
     // ✅ CORRECCIÓN: Forzamos el ID a string

@@ -28,15 +28,17 @@ const app = express();
 
 // Conexión directa a MongoDB para operaciones específicas
 const mongoClient = new MongoClient(process.env.MONGODB_URI);
-(async () => {
-  try {
-    await mongoClient.connect();
-    app.set('mongoDb', mongoClient.db());
-    console.log('Conexión directa a MongoDB establecida');
-  } catch (error) {
-    console.error('Error al conectar a MongoDB directamente:', error.message);
-  }
-})();
+
+// Uso de Top-level await para la conexión directa
+try {
+  await mongoClient.connect();
+  app.set('mongoDb', mongoClient.db());
+  console.log('Conexión directa a MongoDB establecida (Top-level await)');
+} catch (error) {
+  console.error('Error al conectar a MongoDB directamente:', error.message);
+  // Opcional: Terminar el proceso si esta conexión es crítica
+  // process.exit(1); 
+}
 
 // Middlewares
 app.use(cors());
@@ -46,9 +48,15 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 // Conexión a MongoDB con Mongoose
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('Conexión a MongoDB exitosa'))
-  .catch(error => console.error('Error de conexión a MongoDB:', error.message));
+// Conexión a Mongoose (ORM) usando Top-level await
+try {
+  await mongoose.connect(process.env.MONGODB_URI);
+  console.log('Conexión a MongoDB con Mongoose establecida (Top-level await)');
+} catch (error) {
+  console.error('Error de conexión a MongoDB:', error.message);
+  // Si la conexión a Mongoose falla, el servidor no puede iniciar
+  process.exit(1); 
+}
 
 // ======================================
 // Configuración de Rutas

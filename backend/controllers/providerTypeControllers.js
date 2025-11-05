@@ -152,7 +152,7 @@ exports.updateProviderType = async (req, res) => {
     if (description) updateData.description = description;
     
     // Validación especial para coordinadores (no pueden cambiar estado)
-    if (typeof isActive !== 'undefined') {
+    if (isActive !== undefined) { // <-- LÍNEA CORREGIDA (S7741)
       if (req.userRole === 'coordinador') {
         return res.status(403).json({
           success: false,
