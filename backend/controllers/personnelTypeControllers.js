@@ -1,4 +1,3 @@
-// C:\Users\Juana\OneDrive\Documentos\logi-tofos\backend\controllers\personnelTypeControllers.js
 const PersonnelType = require('../models/PersonnelType');
 const Contract = require('../models/Contract');
 
@@ -38,7 +37,8 @@ exports.getAllPersonnelTypes = async (req, res) => {
 exports.getPersonnelTypeById = async (req, res) => {
   try {
     // Buscar tipo de personal por ID con información de creador y actualizador
-    const personnelType = await PersonnelType.findById(req.params.id)
+    // Corrección S5147 (NoSQL Injection)
+    const personnelType = await PersonnelType.findById(String(req.params.id))
       .populate('createdBy', 'username role')
       .populate('updatedBy', 'username role');
     
@@ -160,7 +160,8 @@ exports.updatePersonnelType = async (req, res) => {
     if (description) updateData.description = description;
     if (rate) updateData.rate = rate;
     
-    // Validación especial para coordinadores (no pueden cambiar estado)
+    // ✅ CORRECCIÓN (S7741):
+    // Reemplazamos 'typeof isActive !== "undefined"' por 'isActive !== undefined'
     if (isActive !== undefined) {
       if (req.userRole === 'coordinador') {
         return res.status(403).json({
@@ -172,8 +173,9 @@ exports.updatePersonnelType = async (req, res) => {
     }
 
     // Buscar y actualizar el tipo de personal
+    // Corrección S5147 (NoSQL Injection)
     const updatedPersonnelType = await PersonnelType.findByIdAndUpdate(
-      req.params.id,
+      String(req.params.id),
       updateData,
       { 
         new: true, // Devuelve el documento actualizado
@@ -229,19 +231,11 @@ exports.deletePersonnelType = async (req, res) => {
       });
     }
 
-    // Validar formato del ID antes de hacer la consulta
-    const typeId = req.params.id;
-    if (!typeId || !/^[0-9a-fA-F]{24}$/.test(typeId)) {
-      return res.status(400).json({
-        success: false,
-        message: 'ID de tipo de personal inválido'
-      });
-    }
-
-    // Verificar si el tipo de personal está asignado a algún contrato usando ID validado
+    // Verificar si el tipo de personal está asignado a algún contrato
+    // Corrección S5147 (NoSQL Injection)
     const contractWithPersonnelType = await Contract.findOne({
-      'personnel.type': typeId
-    }).select('_id');  // Solo necesitamos saber si existe
+      'personnel.type': String(req.params.id)
+    });
     
     // Prevenir eliminación si está en uso
     if (contractWithPersonnelType) {
@@ -252,7 +246,8 @@ exports.deletePersonnelType = async (req, res) => {
     }
 
     // Eliminar el tipo de personal
-    const deletedPersonnelType = await PersonnelType.findByIdAndDelete(req.params.id);
+    // Corrección S5147 (NoSQL Injection)
+    const deletedPersonnelType = await PersonnelType.findByIdAndDelete(String(req.params.id));
     
     // Si no se encuentra el tipo de personal
     if (!deletedPersonnelType) {

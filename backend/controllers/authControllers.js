@@ -28,7 +28,17 @@ const signup = async (req, res) => {
     }
 
     // Validar que el documento sea numérico
-    if (isNaN(req.body.document)) {
+    
+    // ✅ CORRECCIÓN (S7773): 
+    // Se reemplaza la función global isNaN() por Number.isNaN()
+    // Nota: Dado que req.body.document puede ser un string, 
+    // es mejor negar Number.isFinite() o validar que la conversión sea exitosa.
+    // Sin embargo, para mantener la lógica original del bug (revisar si NO es número):
+    // Primero intentamos convertirlo a número
+    const documentAsNumber = Number(req.body.document);
+    
+    // Ahora sí, usamos Number.isNaN() sobre el resultado convertido
+    if (Number.isNaN(documentAsNumber)) {
       return res.status(400).json({
         success: false,
         message: "El documento debe ser un número",
@@ -38,7 +48,7 @@ const signup = async (req, res) => {
 
     // Creación de nuevo usuario con datos del request
     const user = new User({
-      document: req.body.document,
+      document: req.body.document, // Mongoose lo convertirá según el Schema
       fullname: req.body.fullname,
       username: req.body.username.trim(), // Elimina espacios
       email: req.body.email.toLowerCase().trim(), // Normaliza email
@@ -103,7 +113,6 @@ const signup = async (req, res) => {
 const signin = async (req, res) => {
   try {
     const { email, password } = req.body;
-    console.log('[Auth] signin body:', { emailPresent: !!email, passwordPresent: !!password });
     
     // Validación de campos requeridos
     if (!email || !password) {
@@ -114,7 +123,9 @@ const signin = async (req, res) => {
     }
 
     // Buscar usuario incluyendo el password (normalmente excluido)
-    const user = await User.findOne({ email }).select('+password');
+    
+    // Corrección S5147 (NoSQL Injection)
+    const user = await User.findOne({ email: String(email) }).select('+password');
     
     // Usuario no encontrado
     if (!user) {
@@ -141,8 +152,6 @@ const signin = async (req, res) => {
       config.secret,
       { expiresIn: config.jwtExpiration }
     );
-
-    console.log('[Auth] signin token generated for user:', user.email);
 
     // Preparar datos del usuario para respuesta (sin password)
     const userData = user.toObject();
@@ -185,7 +194,9 @@ const forgotPassword = async (req, res) => {
     }
 
     // Solo verificamos que el usuario existe
-    const user = await User.findOne({ email });
+    
+    // Corrección S5147 (NoSQL Injection)
+    const user = await User.findOne({ email: String(email) });
     
     if (!user) {
       // Por seguridad, no revelamos si el email existe o no

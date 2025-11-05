@@ -1,7 +1,7 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { NewPersonnel, Personnel, UpdatePersonnel } from '../../../shared/interfaces/personnel';
 import { PersonnelType } from '../../../shared/interfaces/personnel-type';
-import { FormBuilder, FormGroup, Validators, AbstractControl } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
 import { PersonnelService } from '../../../core/services/personnel';
 import { AuthService } from '../../../core/services/auth';
@@ -10,7 +10,7 @@ import { AuthService } from '../../../core/services/auth';
   selector: 'app-personnel-form',
   standalone: false,
   templateUrl: './personnel-form.html',
-  styleUrls: ['./personnel-form.scss']
+  styleUrl: './personnel-form.scss'
 })
 export class PersonnelFormComponent implements OnInit {
   @Input() personnel?: Personnel;
@@ -30,16 +30,16 @@ export class PersonnelFormComponent implements OnInit {
   ];
 
   constructor(
-    public readonly activeModal: NgbActiveModal,
-    private readonly fb: FormBuilder,
-    private readonly personnelService: PersonnelService,
-    private readonly authService: AuthService
+    public activeModal: NgbActiveModal,
+    private fb: FormBuilder,
+    private personnelService: PersonnelService,
+    private authService: AuthService
   ) {
     this.personnelForm = this.fb.group({
       firstName: ['', [Validators.required, Validators.maxLength(50)]],
       lastName: ['', [Validators.required, Validators.maxLength(50)]],
       email: ['', [Validators.required, Validators.email]],
-      phone: ['', [Validators.pattern(/^\d{10,15}$/)]],
+      phone: ['', [Validators.pattern(/^[0-9]{10,15}$/)]],
       personnelType: ['', Validators.required],
       status: ['disponible', Validators.required],
       skills: [[]]
@@ -69,7 +69,7 @@ export class PersonnelFormComponent implements OnInit {
         ? this.personnel.personnelType
         : (this.personnel.personnelType as PersonnelType)._id;
 
-      const type = this.personnelTypes.find(t => t._id === id);
+      const type = (this.personnelTypes as PersonnelType[]).find(t => t._id === id);
       this.currentTypeName = type ? type.name : 'Sin categoría';
     }
   }
@@ -103,10 +103,10 @@ export class PersonnelFormComponent implements OnInit {
             this.isSaving = false;
             this.activeModal.close('saved');
           },
-              error: (err: any) => {
-                console.error('Error updating personnel:', err);
-                this.isSaving = false;
-              }
+          error: (err) => {
+            console.error('Error updating personnel:', err);
+            this.isSaving = false;
+          }
         });
     } else {
       // Creación
@@ -121,7 +121,7 @@ export class PersonnelFormComponent implements OnInit {
             this.isSaving = false;
             this.activeModal.close('saved');
           },
-          error: (err: any) => {
+          error: (err) => {
             console.error('Error creating personnel:', err);
             this.isSaving = false;
           }
@@ -143,8 +143,8 @@ export class PersonnelFormComponent implements OnInit {
   }
 
   private markAllAsTouched(): void {
-    for (const control of Object.values(this.personnelForm.controls) as AbstractControl[]) {
+    Object.values(this.personnelForm.controls).forEach(control => {
       control.markAsTouched();
-    }
+    });
   }
 }

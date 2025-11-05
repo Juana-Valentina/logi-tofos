@@ -1,1 +1,0 @@
-import{K as t,Pb as m,ac as n,ra as e}from"./chunk-3KMOHGR5.js";var f=[],i=class o{static \u0275fac=function(r){return new(r||o)};static \u0275mod=e({type:o});static \u0275inj=t({imports:[n.forChild(f),n]})};var s=class o{static \u0275fac=function(r){return new(r||o)};static \u0275mod=e({type:o});static \u0275inj=t({imports:[m,i]})};export{s as EventManagementModule};

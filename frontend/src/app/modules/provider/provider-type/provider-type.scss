@@ -269,13 +269,13 @@
           font-weight: 500;
           
           &.active {
-            background: rgba(56, 239, 125, 0.2);
-            color: #38ef7d;
+            background: rgba(10, 68, 32, 0.2);
+            color: #41ff8a;
           }
           
           &:not(.active) {
-            background: rgba(255, 65, 108, 0.2);
-            color: #ff416c;
+            background: rgba(66, 10, 23, 0.637);
+            color: #fc4973;
           }
         }
         
@@ -293,8 +293,8 @@
             justify-content: center;
             cursor: pointer;
             transition: all 0.3s;
-            background: rgba(106, 17, 203, 0.2);
-            color: #6a11cb;
+            background: rgba(29, 0, 59, 0.753);
+            color: #b774ff;
             
             i {
               font-size: 0.9rem;
@@ -306,8 +306,8 @@
             }
             
             &.status-toggle-btn {
-              background: rgba(249, 212, 35, 0.2);
-              color: #f9d423;
+              background: rgba(90, 77, 11, 0.938);
+              color: #ffde37;
               
               &:hover {
                 background: rgba(249, 212, 35, 0.3);
@@ -315,8 +315,8 @@
             }
             
             &.danger {
-              background: rgba(255, 65, 108, 0.2);
-              color: #ff416c;
+              background: rgba(56, 8, 19, 0.651);
+              color: #fc4e76;
               
               &:hover {
                 background: rgba(255, 65, 108, 0.3);
@@ -328,13 +328,15 @@
         .no-data {
           text-align: center;
           padding: 2rem;
-          color: rgba(248, 249, 255, 0.5);
+          /* Aumentado contraste: color más opaco para cumplir requisitos de accesibilidad */
+          color: rgba(248, 249, 255, 0.9);
           
           i {
             font-size: 1.5rem;
             margin-bottom: 0.5rem;
             display: block;
-            color: rgba(248, 249, 255, 0.3);
+            /* Icono con contraste razonable pero menos prominente que el texto */
+            color: rgba(248, 249, 255, 0.7);
           }
         }
       }

@@ -22,6 +22,8 @@ const reportRoutes = require('./routes/report.routes');
 
 // Importar el nuevo controlador de reportes
 const reportController = require('./controllers/reportControllers');
+
+// Configurar aplicación Express
 const app = express();
 
 // Conexión directa a MongoDB para operaciones específicas
@@ -41,20 +43,7 @@ app.use(cors());
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// --- Debugging middleware: log Authorization header and preflight OPTIONS ---
-app.use((req, res, next) => {
-  try {
-    const auth = req.headers['authorization'] || req.headers['Authorization'];
-    console.log(`[REQ] ${req.method} ${req.originalUrl} - Authorization: ${auth}`);
-    if (req.method === 'OPTIONS') {
-      console.log('[CORS] Preflight OPTIONS request');
-    }
-  } catch (e) {
-    // noop
-  }
-  next();
-});
+app.use(express.json());
 
 // Conexión a MongoDB con Mongoose
 mongoose.connect(process.env.MONGODB_URI)
@@ -93,21 +82,16 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Iniciar servidor (bind explícito a 0.0.0.0 para acceso desde la red)
-const HOST = process.env.HOST || '0.0.0.0';
+// Iniciar servidor
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, HOST, () => {
-  console.log(`Servidor en ejecución en http://${HOST}:${PORT} (accesible desde la IP pública del servidor)`);
+app.listen(PORT, () => {
+  console.log(`Servidor en ejecución en http://localhost:${PORT}`);
 });
 
 // Manejo de cierre limpio
 process.on('SIGINT', async () => {
   await mongoose.connection.close();
-  try {
-    await mongoClient.close();
-  } catch (err) {
-    console.warn('mongoClient close error:', err && err.message);
-  }
+  await mongoClient.close();
   console.log('Conexiones a MongoDB cerradas');
   process.exit(0);
 });

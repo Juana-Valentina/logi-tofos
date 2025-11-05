@@ -1,4 +1,3 @@
-// C:\Users\Juana\OneDrive\Documentos\logi-tofos\backend\routes\personnelRoutes.js
 const express = require('express'); // Importa Express para crear rutas
 const router = express.Router(); // Crea un enrutador de Express
 const personnelController = require('../controllers/personnelControllers'); // Importa controladores de personal

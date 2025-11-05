@@ -106,23 +106,6 @@ const PersonnelFormScreen: React.FC = () => {
   const validateForm = (): boolean => {
     const newErrors: { [key: string]: string } = {};
 
-  // Validación de email segura (evita regex con retroceso exponencial)
-  const isValidEmail = (email?: string) => {
-    if (!email) return false;
-    // Rechaza espacios
-    if (/\s/.test(email)) return false;
-    // Debe haber exactamente un '@' y no en los extremos
-    const atIndex = email.indexOf('@');
-    if (atIndex <= 0) return false;
-    if (email.indexOf('@', atIndex + 1) !== -1) return false;
-    // Dominio debe contener al menos un '.' y tener longitud mínima
-    const domain = email.slice(atIndex + 1);
-    if (domain.length < 3) return false; // p.ej. a.b
-    const dotIndex = domain.indexOf('.');
-    if (dotIndex <= 0 || dotIndex === domain.length - 1) return false;
-    return true;
-  };
-
     if (!formData.firstName.trim()) {
       newErrors.firstName = 'El nombre es requerido';
     }
@@ -131,7 +114,7 @@ const PersonnelFormScreen: React.FC = () => {
     }
     if (!formData.email.trim()) {
       newErrors.email = 'El email es requerido';
-    } else if (!isValidEmail(formData.email)) {
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'El formato del email es inválido';
     }
     if (formData.phone && !/^[0-9]{10,15}$/.test(formData.phone)) {
