@@ -85,9 +85,8 @@ exports.createEventType = async (req, res) => {
     }
 
     // Extraer datos del cuerpo de la solicitud
-    // LÍNEA 88 CORREGIDA: Se eliminó 'active'
-    const { name, description, defaultResources, requiredPersonnelType, estimatedDuration, category, additionalRequirements } = req.body;
-    
+    const { name, description, defaultResources, requiredPersonnelType, estimatedDuration, category, additionalRequirements, active } = req.body;
+
     // Validar campos obligatorios
     if (!name || !category) {
       return res.status(400).json({
@@ -114,9 +113,9 @@ exports.createEventType = async (req, res) => {
       requiredPersonnelType,
       estimatedDuration,
       category,
-      additionalRequirements: additionalRequirements || [],
-      createdBy: req.userId,
-      active: true // Esta línea es la correcta, ignora el 'active' del body
+      additionalRequirements: additionalRequirements || [], // Array vacío si no se especifica
+      createdBy: req.userId, // Asignar usuario creador
+      active: true // Activo por defecto al crear
     });
 
     // Guardar en la base de datos
@@ -153,7 +152,7 @@ exports.createEventType = async (req, res) => {
  */
 exports.updateEventType = async (req, res) => {
   try {
-    // Guard Clause 1: Validación de Rol principal
+    // Validar rol del usuario
     if (req.userRole !== 'admin' && req.userRole !== 'coordinador') {
       return res.status(403).json({
         success: false,
@@ -161,21 +160,30 @@ exports.updateEventType = async (req, res) => {
       });
     }
 
+    // Extraer datos del cuerpo de la solicitud
     const { name, description, defaultResources, requiredPersonnelType, estimatedDuration, category, additionalRequirements, active } = req.body;
-
-    // --- REFACTOR S3776 (Complejidad) ---
-
-    // Guard Clause 2: Validación de permiso para 'active'
-    // (FIX S7741: Usamos 'active !== undefined')
-    // (FIX Typo: Corregido 'coordi' a 'coordinador')
-    if (active !== undefined && req.userRole === 'coordinador') {
-      return res.status(403).json({
-        success: false,
-        message: 'Coordinadores no pueden cambiar el estado de los tipos de evento'
-      });
+    const updateData = {}; // Objeto para almacenar los campos a actualizar
+    
+    // Preparar datos a actualizar
+    if (name) updateData.name = name;
+    if (description) updateData.description = description;
+    if (defaultResources) updateData.defaultResources = defaultResources;
+    if (requiredPersonnelType) updateData.requiredPersonnelType = requiredPersonnelType;
+    if (estimatedDuration) updateData.estimatedDuration = estimatedDuration;
+    if (additionalRequirements) updateData.additionalRequirements = additionalRequirements;
+    
+    // Validación especial para coordinadores (no pueden cambiar estado)
+    if (typeof active !== 'undefined') {
+      if (req.userRole === 'coordi') {
+        return res.status(403).json({
+          success: false,
+          message: 'Coordinadores no pueden cambiar el estado de los tipos de evento'
+        });
+      }
+      updateData.active = active;
     }
 
-    // Guard Clause 3: Validación de 'category'
+    // Validar categoría si se está actualizando
     if (category) {
       const validCategories = ['corporativo', 'social', 'cultural', 'deportivo', 'academico'];
       if (!validCategories.includes(category)) {
@@ -185,23 +193,7 @@ exports.updateEventType = async (req, res) => {
           validCategories
         });
       }
-    }
-    
-    // --- FIN REFACTOR ---
-
-    // Preparar datos a actualizar (Lógica ahora más simple)
-    const updateData = {};
-    if (name) updateData.name = name;
-    if (description) updateData.description = description;
-    if (defaultResources) updateData.defaultResources = defaultResources;
-    if (requiredPersonnelType) updateData.requiredPersonnelType = requiredPersonnelType;
-    if (estimatedDuration) updateData.estimatedDuration = estimatedDuration;
-    if (additionalRequirements) updateData.additionalRequirements = additionalRequirements;
-    if (category) updateData.category = category;
-    
-    // (FIX S7741) Añadir 'active' solo si fue definido
-    if (active !== undefined) {
-      updateData.active = active;
+      updateData.category = category;
     }
 
     // Buscar y actualizar el tipo de evento
@@ -214,7 +206,7 @@ exports.updateEventType = async (req, res) => {
       }
     ).populate('createdBy', 'username role');
 
-    // ... (Manejo de 404 y éxito) ...
+    // Si no se encuentra el tipo de evento
     if (!updatedEventType) {
       return res.status(404).json({
         success: false,
@@ -222,6 +214,7 @@ exports.updateEventType = async (req, res) => {
       });
     }
 
+    // Respuesta exitosa con los datos actualizados
     res.status(200).json({
       success: true,
       message: 'Tipo de evento actualizado correctamente',

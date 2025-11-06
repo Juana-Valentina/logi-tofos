@@ -76,10 +76,7 @@ exports.getEventById = async (req, res) => {
 exports.createEvent = async (req, res) => {
   try {
     // ... (el resto de la función no necesita cambios)
-    
-    // LÍNEA 79 CORREGIDA: Se eliminó 'status' de la desestructuración
-    const { name, description, location, eventType, contract, responsable, startDate, endDate } = req.body;
-
+    const { name, description, location, eventType, contract, responsable, startDate, endDate, status } = req.body;
     if (!name || !startDate || !endDate || !eventType) {
       return res.status(400).json({ success: false, message: 'Nombre, fechas y tipo de evento son campos obligatorios' });
     }
@@ -90,10 +87,7 @@ exports.createEvent = async (req, res) => {
     if (!eventTypeExists) {
       return res.status(404).json({ success: false, message: 'El tipo de evento especificado no existe' });
     }
-
-    // La lógica de negocio no cambia: el status siempre se crea como 'planificado'
     const event = new Event({ name, description, location, eventType, contract, responsable, startDate, endDate, status: 'planificado', createdBy: req.userId });
-    
     const savedEvent = await event.save();
     res.status(201).json({ success: true, message: 'Evento creado exitosamente', data: savedEvent });
   } catch (error) {
