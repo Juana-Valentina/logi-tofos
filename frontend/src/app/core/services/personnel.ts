@@ -15,7 +15,7 @@ export class PersonnelService {
   public personnelTypesSubject = new BehaviorSubject<PersonnelType[]>([]);
   public personnelTypes$ = this.personnelTypesSubject.asObservable();
 
-  constructor(private apiService: ApiService) {
+  constructor(private readonly apiService: ApiService) {
     this.loadInitialData();
     console.log('PersonnelService constructor llamado');
   }

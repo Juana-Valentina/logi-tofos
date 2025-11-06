@@ -19,7 +19,6 @@ const personnelTypeRoutes = require('./routes/personnelTypeRoutes');
 const resourceTypeRoutes = require('./routes/resourceTypeRoutes');
 const reportRoutes = require('./routes/report.routes');
 
-
 // Importar el nuevo controlador de reportes
 const reportController = require('./controllers/reportControllers');
 
@@ -28,15 +27,15 @@ const app = express();
 
 // Conexión directa a MongoDB para operaciones específicas
 const mongoClient = new MongoClient(process.env.MONGODB_URI);
-(async () => {
-  try {
-    await mongoClient.connect();
-    app.set('mongoDb', mongoClient.db());
-    console.log('Conexión directa a MongoDB establecida');
-  } catch (error) {
-    console.error('Error al conectar a MongoDB directamente:', error.message);
-  }
-})();
+
+// CORRECCIÓN: Uso de top-level await en lugar de IIFE
+try {
+  await mongoClient.connect();
+  app.set('mongoDb', mongoClient.db());
+  console.log('Conexión directa a MongoDB establecida');
+} catch (error) {
+  console.error('Error al conectar a MongoDB directamente:', error.message);
+}
 
 // Middlewares
 app.use(cors());
@@ -46,9 +45,13 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 // Conexión a MongoDB con Mongoose
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('Conexión a MongoDB exitosa'))
-  .catch(error => console.error('Error de conexión a MongoDB:', error.message));
+// CORRECCIÓN: Uso de top-level await en lugar de promise chain
+try {
+  await mongoose.connect(process.env.MONGODB_URI);
+  console.log('Conexión a MongoDB exitosa');
+} catch (error) {
+  console.error('Error de conexión a MongoDB:', error.message);
+}
 
 // ======================================
 // Configuración de Rutas
@@ -67,6 +70,7 @@ app.use('/api/provider-types', providerTypeRoutes);
 app.use('/api/personnel-types', personnelTypeRoutes);
 app.use('/api/resource-types', resourceTypeRoutes);
 app.use('/api/reports', reportRoutes);
+
 // Ruta de prueba
 app.get('/', (req, res) => {
   res.json({ message: 'API de Gestión de Eventos y Logística' });
