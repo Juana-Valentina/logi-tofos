@@ -52,7 +52,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ onLogout, canCreateUser }) => {
     </View>
   );
 };
-
+  // pruebas :) 
 // Se utilizan tus estilos originales
 const styles = StyleSheet.create({
   mainHeader: {
